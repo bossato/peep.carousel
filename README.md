@@ -16,6 +16,10 @@
 * iPhone
 * Android of some
 
+### デモ
+
+http://bossato.github.io/peep.carousel/
+
 ### 1.設置方法
 
 jQueryとpeep.carouselのJS、CSSファイルを読み込みます。
