@@ -1,5 +1,8 @@
 ﻿/*
- * peep carousel v0.1
+ * peep carousel v0.2
+ * https://github.com/bossato/peep.carousel
+ *
+ * Last Updated 2013/10/27
  * Copyright 2013 Kazuya Sato
  */
 
@@ -33,7 +36,7 @@ if (typeof Object.create !== 'function') {
       base.imageSize = base.carouselLi.find('img').size();
       base.count = base.minCount = 1;
       base.maxCount = Math.ceil(parseFloat(base.imageSize / base.options.displayImageNum));
-      base.startPosX = base.endPosX = 0;
+      base.startPosX = base.endPosX = base.translatePosX= 0;
       base.translateVal = 10;
 
       base.setEventType();
@@ -95,8 +98,8 @@ if (typeof Object.create !== 'function') {
       base.carouselLiFirst.css('padding-left', paddingPx);
       base.carouselLiLast.css('padding-right', paddingPx);
 
-      var translateWidth = - base.translateXWidth * (base.count - 1);
-      base.translatePagination(translateWidth);
+      var translatePosX = - base.translateXWidth * (base.count - 1);
+      base.translatePagination(translatePosX);
     },
 
     buildPagination: function() {
@@ -106,11 +109,8 @@ if (typeof Object.create !== 'function') {
 
       var pageTemplate = '';
       for (var i = 1; i <= base.maxCount; i++) {
-        if (i == 1) {
-          pageTemplate = pageTemplate + '<div class="peep-page"><span class="active"></span></div>';
-        } else {
-          pageTemplate = pageTemplate + '<div class="peep-page"><span></span></div>';
-        }
+        var spanClass = (i == 1) ? 'active' : '';
+        pageTemplate = pageTemplate + '<div class="peep-page"><span class="' + spanClass + '"></span></div>';
       }
 
       var paginationTemplate = '<div class="peep-pagination">' + prevTemplate + pageTemplate + nextTemplate + '</div>';
@@ -133,48 +133,64 @@ if (typeof Object.create !== 'function') {
         base.next();
       });
 
-      $(document).on(base.eventStart, '#' + base.carouselId + ' ul', function(e) {
-        base.startPosX = e.pageX;
-      });
+      base.touched = false;
+      $('#' + base.carouselId + ' ul').bind({
+        'touchstart mousedown': function(e) {
+          base.startPosX = e.pageX;
+          base.touched = true;
+        },
+        'touchmove mousemove': function(e) {
+          if (!base.touched) {
+            return;
+          }
 
-      $(document).on(base.eventEnd, '#' + base.carouselId + ' ul', function(e) {
-        base.endPosX = e.pageX;
-        var translateX = base.startPosX - base.endPosX;
+          movePosX = e.pageX;
+          var translatePosX = movePosX - base.startPosX + base.translatePosX;
+          base.translatePagination(translatePosX);
+        },
+        'touchend mouseup': function(e) {
+          if (!base.touched) {
+            return;
+          }
 
-        if (translateX < -base.translateVal) {
-          base.prev();
-        } else if (base.translateVal < translateX) {
-          base.next();
+          base.touched = false;
+          
+          base.endPosX = e.pageX;
+          var translateX = base.startPosX - base.endPosX;
+          if (translateX < -base.translateVal) {
+            base.prev();
+          } else if (base.translateVal < translateX) {
+            base.next();
+          }
         }
-
-        base.startPosX = base.endPosX = 0;
       });
     },
 
     prev: function() {
       var base = this;
+      var count = base.count - 1;
 
       if (base.count > base.minCount) {
         base.count--;
-        var count = base.count - 1;
-        var translateWidth = - base.translateXWidth * count;
-        base.translatePagination(translateWidth);
-        base.initPagination(count);
+        count = base.count - 1;
+        base.translatePosX = - base.translateXWidth * count;
       }
+      base.translatePagination(base.translatePosX);
+      base.initPagination(count);
 
       return false;
     },
 
     next: function() {
       var base = this;
+      var count = base.count;
 
-      if (base.count < base.maxCount) {
-        var translateWidth = - base.translateXWidth * base.count;
-
+      if (count < base.maxCount) {
+        base.translatePosX = - base.translateXWidth * count;
         base.initPagination();
-        base.translatePagination(translateWidth);
         base.count++;
       }
+      base.translatePagination(base.translatePosX);
 
       return false;
     },
@@ -188,13 +204,13 @@ if (typeof Object.create !== 'function') {
       base.paginationDiv.eq(count).find('span').addClass('active');
     },
 
-    translatePagination: function(translateWidth) {
+    translatePagination: function(translatePosX) {
       var base = this;
       base.carouselUl.css({
-        '-webkit-transform' : 'translate3d(' + translateWidth + 'px, 0, 0)',
-        '-moz-transform'    : 'translate3d(' + translateWidth + 'px, 0, 0)',
-        '-webkit-transition': '-webkit-transform 400ms cubic-bezier(0, 0, 0.25, 1)',
-        '-moz-transition'   : '-moz-transform 400ms cubic-bezier(0, 0, 0.25, 1)'
+        '-webkit-transform'  : 'translate3d(' + translatePosX + 'px, 0, 0)',
+        '-moz-transform'     : 'translate3d(' + translatePosX + 'px, 0, 0)',
+        '-webkit-transition' : '-webkit-transform 400ms cubic-bezier(0, 0, 0.25, 1)',
+        '-moz-transition'    : '-moz-transform 400ms cubic-bezier(0, 0, 0.25, 1)'
       });
     }
   };
